@@ -171,6 +171,7 @@ struct Registry::Data
 {
     using MetricList = std::list<std::shared_ptr<detail::Metric>>;
     std::map<std::string, MetricList> map_;
+    std::mutex mtx_;
 };
 
 Registry& Registry::global()
@@ -188,6 +189,8 @@ Registry::~Registry() = default;
 
 void Registry::push(std::shared_ptr<detail::Metric> m)
 {
+    std::lock_guard<std::mutex> lock{data_->mtx_};
+
     auto r = data_->map_.emplace(m->name(), Data::MetricList());
     auto& list = r.first->second;
     if (!list.empty()) {
@@ -202,6 +205,8 @@ void Registry::push(std::shared_ptr<detail::Metric> m)
 
 void Registry::flush(std::ostream& os) const
 {
+    std::lock_guard<std::mutex> lock{data_->mtx_};
+
     for (auto& kv: data_->map_) {
         auto& list = kv.second;
         // write header from the first metric in the group
