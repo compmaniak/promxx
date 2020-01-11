@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <list>
 #include <map>
-#include <stdexcept>
 
 namespace promxx
 {
@@ -16,7 +15,7 @@ std::string const QUANTILE = "quantile";
 std::vector<std::string> histogram_keys(std::vector<std::string> keys)
 {
     if (std::find(keys.begin(), keys.end(), LE) != keys.end())
-        throw std::invalid_argument{"\"le\" is not allowed as label name in histogram"};
+        throw Error{"\"le\" is not allowed as label name in histogram"};
     return keys;
 }
 
@@ -29,7 +28,7 @@ Histogram::Histogram(std::string name, Buckets bounds,
 {
     std::sort(bounds_.begin(), bounds_.end());
     if (std::adjacent_find(bounds_.begin(), bounds_.end()) != bounds_.end())
-        throw std::invalid_argument{""};
+        throw Error{""};
 }
 
 Histogram::Histogram(std::string name, LinearBuckets lb,
@@ -37,7 +36,7 @@ Histogram::Histogram(std::string name, LinearBuckets lb,
     : detail::MetricMeta(std::move(name), histogram_keys(std::move(keys)), std::move(help))
 {
     if (lb.delta < 1)
-        throw std::invalid_argument{""};
+        throw Error{""};
     bounds_.reserve(lb.count);
     Unsigned le = lb.start;
     for (size_t i = 0; i < lb.count; ++i) {
@@ -51,7 +50,7 @@ Histogram::Histogram(std::string name, ExponentialBuckets eb,
     : detail::MetricMeta(std::move(name), histogram_keys(std::move(keys)), std::move(help))
 {
     if (eb.delta <= 1)
-        throw std::invalid_argument{""};
+        throw Error{""};
     bounds_.reserve(eb.count);
     Unsigned le = eb.start;
     for (size_t i = 0; i < eb.count; ++i) {
@@ -105,7 +104,7 @@ Metric::Metric(std::string type, MetricMeta const& mm,
     , help_(mm.help_)
 {
     if (mm.keys_.size() != values.size())
-        throw std::invalid_argument{"Key/value mismatch for metric '" + name_ + "'"};
+        throw Error{"Key/value mismatch for metric '" + name_ + "'"};
 
     auto it = mm.keys_.begin();
     if (it != mm.keys_.end()) {
@@ -159,7 +158,7 @@ MetricMeta::MetricMeta(std::string name, std::vector<std::string> keys,
 
     std::sort(keys_.begin(), keys_.end(), &key_value_i_lt);
     if (std::adjacent_find(keys_.begin(), keys_.end(), &key_value_i_eq) != keys_.end())
-        throw std::invalid_argument{"Metric '" + name_ + "' has duplicate label names"};
+        throw Error{"Metric '" + name_ + "' has duplicate label names"};
 }
 
 } // namespace detail
@@ -189,10 +188,10 @@ void Registry::push(std::shared_ptr<detail::Metric> m)
     auto& list = r.first->second;
     if (!list.empty()) {
         if (m->type() != list.front()->type())
-            throw std::invalid_argument{"Metric '" + m->name() + "' type is ambiguous"};
+            throw Error{"Metric '" + m->name() + "' type is ambiguous"};
         for (auto const& v: list)
             if (m->labels() == v->labels())
-                throw std::invalid_argument{"Metric '" + m->name() + "' has duplicate labels"};
+                throw Error{"Metric '" + m->name() + "' has duplicate labels"};
     }
     list.push_back(std::move(m));
 }

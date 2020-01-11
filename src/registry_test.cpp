@@ -9,7 +9,7 @@ using namespace promxx;
 #define ASSERT_THROW(EXPR, WHAT) try { \
     (EXPR); \
     assert(0); \
-} catch (std::invalid_argument const& e) { \
+} catch (Error const& e) { \
     assert(e.what() == std::string(WHAT)); \
 }
 

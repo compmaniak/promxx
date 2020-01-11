@@ -13,6 +13,17 @@ namespace promxx
 
 using Unsigned = unsigned long long;
 
+class Error: public std::exception
+{
+    std::string what_;
+
+public:
+    Error(std::string what) noexcept
+        : what_(std::move(what)) {}
+
+    const char* what() const noexcept override { return what_.c_str(); }
+};
+
 namespace detail
 {
 
