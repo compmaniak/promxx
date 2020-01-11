@@ -23,12 +23,16 @@ std::vector<std::string> histogram_keys(std::vector<std::string> keys)
 
 Histogram::Histogram(std::string name, Buckets bounds,
                      std::string help, std::vector<std::string> keys)
-    : detail::MetricMeta(std::move(name), histogram_keys(std::move(keys)), std::move(help))
+    : detail::MetricMeta(name, histogram_keys(std::move(keys)), std::move(help))
     , bounds_(std::move(bounds))
 {
-    std::sort(bounds_.begin(), bounds_.end());
-    if (std::adjacent_find(bounds_.begin(), bounds_.end()) != bounds_.end())
-        throw Error{""};
+    if (!bounds_.empty()) {
+        auto next = bounds_.begin();
+        auto prev = next++;
+        while (next != bounds_.end())
+            if (!(*prev++ < *next++))
+                throw Error{"Histogram '" + name + "' buckets must be in increasing order"};
+    }
 }
 
 Histogram::Histogram(std::string name, LinearBuckets lb,

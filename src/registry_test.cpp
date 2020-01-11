@@ -129,9 +129,11 @@ int main()
 
     add(h4, {"l1v3","l2v4"});
 
-    ASSERT_THROW(Histogram("h5", Buckets{1}, "", {"le"}), "\"le\" is not allowed as label name in histogram");
-    ASSERT_THROW(Histogram("h5", LinearBuckets{1, 2, 3}, "", {"le"}), "\"le\" is not allowed as label name in histogram");
-    ASSERT_THROW(Histogram("h5", ExponentialBuckets{1, 2, 3}, "", {"le"}), "\"le\" is not allowed as label name in histogram");
+    ASSERT_THROW(Histogram("h5", Buckets{1, 1}, ""), "Histogram 'h5' buckets must be in increasing order")
+
+    ASSERT_THROW(Histogram("h5", Buckets{1}, "", {"le"}), "\"le\" is not allowed as label name in histogram")
+    ASSERT_THROW(Histogram("h5", LinearBuckets{1, 2, 3}, "", {"le"}), "\"le\" is not allowed as label name in histogram")
+    ASSERT_THROW(Histogram("h5", ExponentialBuckets{1, 2, 3}, "", {"le"}), "\"le\" is not allowed as label name in histogram")
 
     std::stringstream ss;
     Registry::global().flush(ss);

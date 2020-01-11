@@ -52,7 +52,7 @@ class MetricMeta
     std::vector<KeyValueI> keys_;
     std::string help_;
 
-public:
+protected:
     MetricMeta(std::string name, std::vector<std::string> keys, std::string help);
 };
 
