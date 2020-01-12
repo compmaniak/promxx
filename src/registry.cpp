@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <list>
 #include <map>
+#include <memory>
 
 namespace promxx
 {
@@ -169,7 +170,7 @@ MetricMeta::MetricMeta(std::string name, std::vector<std::string> keys,
 
 struct Registry::Data
 {
-    using MetricList = std::list<std::shared_ptr<detail::Metric>>;
+    using MetricList = std::list<std::unique_ptr<detail::Metric>>;
     std::map<std::string, MetricList> map_;
     std::mutex mtx_;
 };
@@ -182,14 +183,18 @@ Registry& Registry::global()
 
 Registry::Registry()
 {
-    data_.reset(new Data());
+    data_ = new Data();
 }
 
-Registry::~Registry() = default;
-
-void Registry::push(std::shared_ptr<detail::Metric> m)
+Registry::~Registry()
 {
-    std::lock_guard<std::mutex> lock{data_->mtx_};
+    delete data_;
+}
+
+void Registry::push(detail::Metric *ptr)
+{
+    std::unique_ptr<detail::Metric> m{ptr};
+    std::lock_guard<std::mutex > lock{data_->mtx_};
 
     auto r = data_->map_.emplace(m->name(), Data::MetricList());
     auto& list = r.first->second;

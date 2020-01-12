@@ -2,7 +2,6 @@
 #define PROMXX_HPP
 
 #include <atomic>
-#include <memory>
 #include <mutex>
 #include <ostream>
 #include <string>
@@ -228,9 +227,9 @@ struct MetricImpl<Histogram> final: Metric, IHistogram
 class Registry: detail::NoCopyMove
 {
     struct Data;
-    std::unique_ptr<Data> data_;
+    Data *data_;
 
-    void push(std::shared_ptr<detail::Metric> m);
+    void push(detail::Metric *m);
 
 public:
     static Registry& global();
@@ -242,7 +241,7 @@ public:
     typename detail::MetricImpl<T>::base &
     add(T const& t, std::vector<std::string> const& values = {})
     {
-        auto m = std::make_shared<detail::MetricImpl<T>>(t, values);
+        auto m = new detail::MetricImpl<T>(t, values);
         push(m);
         return *m;
     }
