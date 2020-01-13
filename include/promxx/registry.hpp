@@ -59,7 +59,7 @@ template<class T>
 struct AutoBuckets
 {
     Unsigned start;
-    double delta;
+    T delta;
     std::size_t count;
 };
 
@@ -85,8 +85,8 @@ public:
 };
 
 using Buckets = std::vector<Unsigned>;
-using LinearBuckets = detail::AutoBuckets<class Linear>;
-using ExponentialBuckets = detail::AutoBuckets<class Exponential>;
+using LinearBuckets = detail::AutoBuckets<Unsigned>;
+using ExponentialBuckets = detail::AutoBuckets<double>;
 
 class Histogram: public detail::MetricMeta
 {

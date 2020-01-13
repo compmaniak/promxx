@@ -8,7 +8,8 @@ using namespace promxx;
 
 #define ASSERT_THROW(EXPR, WHAT) try { \
     (EXPR); \
-    assert(0); \
+    int has_exception = 0; \
+    assert(has_exception); \
 } catch (Error const& e) { \
     assert(e.what() == std::string(WHAT)); \
 }
@@ -65,7 +66,12 @@ auto const expected_metrics =
 "h4_bucket{l1=\"l1v3\",l2=\"l2v4\",le=\"1000\"} 0\n"
 "h4_bucket{l1=\"l1v3\",l2=\"l2v4\",le=\"+Inf\"} 0\n"
 "h4_sum{l1=\"l1v3\",l2=\"l2v4\"} 0\n"
-"h4_count{l1=\"l1v3\",l2=\"l2v4\"} 0\n";
+"h4_count{l1=\"l1v3\",l2=\"l2v4\"} 0\n"
+"# HELP h5 Histogram with no buckets\n"
+"# TYPE h5 histogram\n"
+"h5_bucket{le=\"+Inf\"} 0\n"
+"h5_sum 0\n"
+"h5_count 0\n";
 
 int main()
 {
@@ -129,11 +135,20 @@ int main()
 
     add(h4, {"l1v3","l2v4"});
 
-    ASSERT_THROW(Histogram("h5", Buckets{1, 1}, ""), "Histogram 'h5' buckets must be in increasing order")
+    ASSERT_THROW(Histogram("h5", Buckets{1, 1}), "Histogram 'h5' buckets must be in increasing order")
+
+    ASSERT_THROW(Histogram("h5", LinearBuckets{1, 0, 1}), "Histogram 'h5' delta must be not less than 1")
+    ASSERT_THROW(Histogram("h5", LinearBuckets{Unsigned(-1) - 1, 1, 3}), "Histogram 'h5' boundaries overflow")
+
+    ASSERT_THROW(Histogram("h5", ExponentialBuckets{1, 1, 1}), "Histogram 'h5' delta must be greater than 1")
+    ASSERT_THROW(Histogram("h5", ExponentialBuckets{1000, 2.3, 1000000}), "Histogram 'h5' boundaries overflow")
+    ASSERT_THROW(Histogram("h5", ExponentialBuckets{10, 1.001, 10}), "Histogram 'h5' got duplicate buckets, try to increase the delta")
 
     ASSERT_THROW(Histogram("h5", Buckets{1}, "", {"le"}), "\"le\" is not allowed as label name in histogram")
     ASSERT_THROW(Histogram("h5", LinearBuckets{1, 2, 3}, "", {"le"}), "\"le\" is not allowed as label name in histogram")
     ASSERT_THROW(Histogram("h5", ExponentialBuckets{1, 2, 3}, "", {"le"}), "\"le\" is not allowed as label name in histogram")
+
+    add(Histogram("h5", Buckets{}, "Histogram with no buckets"));
 
     std::stringstream ss;
     Registry::global().flush(ss);

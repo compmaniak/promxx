@@ -1,6 +1,7 @@
 #include <promxx/registry.hpp>
 
 #include <algorithm>
+#include <cmath>
 #include <list>
 #include <map>
 #include <memory>
@@ -38,29 +39,41 @@ Histogram::Histogram(std::string name, Buckets bounds,
 
 Histogram::Histogram(std::string name, LinearBuckets lb,
                      std::string help, std::vector<std::string> keys)
-    : detail::MetricMeta(std::move(name), histogram_keys(std::move(keys)), std::move(help))
+    : detail::MetricMeta(name, histogram_keys(std::move(keys)), std::move(help))
 {
     if (lb.delta < 1)
-        throw Error{""};
-    bounds_.reserve(lb.count);
-    Unsigned le = lb.start;
-    for (size_t i = 0; i < lb.count; ++i) {
+        throw Error{"Histogram '" + name + "' delta must be not less than 1"};
+    if (lb.count > 0) {
+        Unsigned le = lb.start;
+        bounds_.reserve(lb.count);
         bounds_.push_back(le);
-        le += lb.delta; // TODO check overflow
+        for (std::size_t i = 1; i < lb.count; ++i) {
+            if (le > Unsigned(-1) - lb.delta)
+                throw Error{"Histogram '" + name + "' boundaries overflow"};
+            le += lb.delta;
+            bounds_.push_back(le);
+        }
     }
 }
 
 Histogram::Histogram(std::string name, ExponentialBuckets eb,
                      std::string help, std::vector<std::string> keys)
-    : detail::MetricMeta(std::move(name), histogram_keys(std::move(keys)), std::move(help))
+    : detail::MetricMeta(name, histogram_keys(std::move(keys)), std::move(help))
 {
     if (eb.delta <= 1)
-        throw Error{""};
-    bounds_.reserve(eb.count);
-    Unsigned le = eb.start;
-    for (size_t i = 0; i < eb.count; ++i) {
+        throw Error{"Histogram '" + name + "' delta must be greater than 1"};
+    if (eb.count > 0) {
+        Unsigned le = eb.start;
+        bounds_.reserve(eb.count);
         bounds_.push_back(le);
-        le *= eb.delta; // TODO check overflow and duplicates
+        for (std::size_t i = 1; i < eb.count; ++i) {
+            if (le > std::floor(Unsigned(-1) / eb.delta))
+                throw Error{"Histogram '" + name + "' boundaries overflow"};
+            le = std::floor(le * eb.delta);
+            if (le == bounds_.back())
+                throw Error{"Histogram '" + name + "' got duplicate buckets, try to increase the delta"};
+            bounds_.push_back(le);
+        }
     }
 }
 
